@@ -5,8 +5,8 @@
 
 %define with_docu	0
 %define name		util-vserver
-%define version		0.30.212
-%define release		%mkrel 3
+%define version		0.30.213
+%define release		%mkrel 1
 
 Summary:	Linux virtual server utilities
 Name:		%{name}
