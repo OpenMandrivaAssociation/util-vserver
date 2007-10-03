@@ -6,7 +6,7 @@
 %define with_docu	0
 %define name		util-vserver
 %define version		0.30.213
-%define release		%mkrel 1
+%define release		%mkrel 2
 
 Summary:	Linux virtual server utilities
 Name:		%{name}
@@ -163,6 +163,7 @@ develop VServer related applications.
 rm -rf $RPM_BUILD_ROOT
 %configure --with-initrddir=%_initrddir --enable-release \
           --localstatedir=%_var \
+	  --enable-apis=ALL \
            %{?_without_dietlibc:--disable-dietlibc}
 
 %__make %{?_smp_mflags} all
@@ -334,5 +335,3 @@ test "$1" = 0  || service rebootmgr condrestart >/dev/null || :
 %defattr(-,root,root,-)
 %doc lib/apidoc/latex/refman.pdf
 %doc lib/apidoc/html
-
-
