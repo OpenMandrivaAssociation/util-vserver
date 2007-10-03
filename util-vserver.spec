@@ -6,7 +6,7 @@
 %define with_docu	0
 %define name		util-vserver
 %define version		0.30.213
-%define release		%mkrel 2
+%define release		%mkrel 1
 
 Summary:	Linux virtual server utilities
 Name:		%{name}
@@ -166,7 +166,6 @@ develop VServer related applications.
 rm -rf $RPM_BUILD_ROOT
 %configure --with-initrddir=%_initrddir --enable-release \
           --localstatedir=%_var \
-	  --enable-apis=ALL \
            %{?_without_dietlibc:--disable-dietlibc}
 
 %__make %{?_smp_mflags} all
