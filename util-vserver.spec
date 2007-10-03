@@ -30,6 +30,9 @@ BuildRequires:	mount vlan-utils gawk iproute2 iptables
 BuildRequires:	gcc-c++ wget
 BuildRequires:	e2fsprogs-devel libbeecrypt-devel
 BuildRequires:	doxygen tetex-latex
+BuildRequires:	libxslt-proc
+BuildRequires:	rsync
+BuildRequires:	dump
 Requires(post):		%__chattr
 Requires(pre):		%pkglibdir
 Requires(postun):	%pkglibdir
