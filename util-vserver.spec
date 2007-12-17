@@ -18,7 +18,6 @@ URL:		http://savannah.nongnu.org/projects/util-vserver/
 Source0:	http://savannah.nongnu.org/download/util-vserver/stable.pkg/%version/%name-%version.tar.bz2
 Patch0:		util-vserver-0.30.212-mandriva.patch
 Patch1:		vserver-urpmi-mandriva.patch
-BuildRoot:	%_tmppath/%name-%version-%release-root
 Requires:	init(util-vserver)
 Requires:	%name-core = %version
 Requires:	%name-lib  = %version
