@@ -204,8 +204,12 @@ f="%confdefaultdir/cachebase"; test -L "$f" -o -e "$f" || ln -s %_var/cache/vser
 test "$1" != 0 || rm -rf %_var/cache/vservers/* 2>/dev/null || :
 
 
+%if %mdkversion < 200900
 %post   lib -p /sbin/ldconfig
+%endif
+%if %mdkversion < 200900
 %postun lib -p /sbin/ldconfig
+%endif
 
 
 %post sysv
