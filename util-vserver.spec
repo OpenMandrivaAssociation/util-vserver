@@ -181,7 +181,7 @@ rm -f $RPM_BUILD_ROOT/%_libdir/*.la
 contrib/make-manifest %name $RPM_BUILD_ROOT contrib/manifest.dat
 
 
-%check || :
+%check
 %__make check
 
 
