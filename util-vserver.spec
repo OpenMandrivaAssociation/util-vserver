@@ -2,11 +2,12 @@
 %define confdefaultdir	%confdir/.defaults
 %define pkglibdir	%_libdir/%name
 %define __chattr	/usr/bin/chattr
+%define __libtoolize	/bin/true
 
 %define with_docu	0
 %define name		util-vserver
 %define version		0.30.215
-%define release		%mkrel 4
+%define release		%mkrel 5
 
 Summary:	Linux virtual server utilities
 Name:		%{name}
@@ -50,7 +51,7 @@ Requires:		util-linux
 %package build
 Summary:		Tools which can be used to build vservers
 Group:			System/Base
-Requires:		rpm apt wget binutils tar e2fsprogs
+Requires:		rpm wget binutils tar e2fsprogs
 Requires:		%name = %version
 Requires(pre):		%confdir
 Requires(postun):	%confdir
@@ -161,10 +162,8 @@ develop VServer related applications.
 %patch0 -p1
 %patch1 -p1 -b .mdv
 
-
 %build
-rm -rf $RPM_BUILD_ROOT
-%configure --with-initrddir=%_initrddir --enable-release \
+%configure2_5x --with-initrddir=%_initrddir --enable-release \
           --localstatedir=%_var \
            %{?_without_dietlibc:--disable-dietlibc}
 
