@@ -1,0 +1,48 @@
+--- util-vserver-0.30.212/scripts/legacy/distrib-info.mandriva	2006-12-09 17:15:23.000000000 +0100
++++ util-vserver-0.30.212/scripts/legacy/distrib-info	2007-01-08 02:20:37.000000000 +0100
+@@ -53,7 +53,7 @@
+ KEY=$2
+ shift
+ shift
+-if [ -f $DIRDIR/etc/redhat-release -o -f $DISTDIR/etc/mandrake-release ] ; then
++if [ -f $DIRDIR/etc/redhat-release -o -f $DISTDIR/etc/mandriva-release ] ; then
+ 	case $KEY in
+ 	pkgversion)
+ 		$CHROOTCMD /bin/rpm -qa --queryformat "%{name}=%{version}-%{release}\n"
+--- util-vserver-0.30.212/scripts/pkgmgmt.mandriva	2006-12-09 17:15:24.000000000 +0100
++++ util-vserver-0.30.212/scripts/pkgmgmt	2007-01-08 02:24:13.000000000 +0100
+@@ -416,7 +416,7 @@
+     pkgmgmt.guessStyle "$vserver" style || return 1
+ 
+     case "$style" in
+-	(redhat|mandrake)	processVserver_RH     "$vserver" "$IS_INTERNALIZE";;
++	(redhat|mandriva)	processVserver_RH     "$vserver" "$IS_INTERNALIZE";;
+ 	(debian)		processVserver_Debian "$vserver" "$IS_INTERNALIZE";;
+ 	(*)
+ 	    echo $"Vserver style '$style' is not supported for packagemanagment" >&2
+--- util-vserver-0.30.212/scripts/vpkg.mandriva	2006-12-09 17:15:24.000000000 +0100
++++ util-vserver-0.30.212/scripts/vpkg	2007-01-08 02:24:54.000000000 +0100
+@@ -77,7 +77,7 @@
+ cmd=()
+ 
+ case "$style" in
+-    (redhat|mandrake)
++    (redhat|mandriva)
+ 	rpm_param=
+ 	apt_param=
+ 	case "$tag" in
+--- util-vserver-0.30.212/scripts/functions.mandriva	2006-12-09 17:15:24.000000000 +0100
++++ util-vserver-0.30.212/scripts/functions	2007-01-08 02:19:53.000000000 +0100
+@@ -746,10 +746,10 @@
+ 
+     if test -n "$_pgs_cfgdir" -a -e "$_pgs_cfgdir"/style; then
+ 	read style <"$_pgs_cfgdir"/style
++    elif test -e "$_pgs_vdir"/etc/mandriva-release; then
++	style=mandriva
+     elif test -e "$_pgs_vdir"/etc/redhat-release -o -e "$_pgs_vdir"/etc/fedora-release; then
+ 	style=redhat
+-    elif test -e "$_pgs_vdir"/etc/mandrake-release; then
+-	style=mandrake
+     elif test -e "$_pgs_vdir"/etc/debian_version; then
+ 	style=debian
+     elif test -e "$_pgs_vdir"/etc/SuSE-release; then

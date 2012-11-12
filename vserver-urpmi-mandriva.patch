@@ -1,0 +1,826 @@
+diff -p -up util-vserver-0.30.215/Makefile.in.mdv util-vserver-0.30.215/Makefile.in
+--- util-vserver-0.30.215/Makefile.in.mdv	2008-03-17 10:00:13.000000000 +0100
++++ util-vserver-0.30.215/Makefile.in	2008-08-06 10:41:34.000000000 +0200
+@@ -1886,7 +1886,7 @@ AM_INSTALLCHECK_STD_OPTIONS_EXEMPT = src
+ 	src/vbuild src/vcheck src/vreboot src/save_ctxinfo \
+ 	src/mask2prefix src/ifspec src/rebootmgr src/vfiles \
+ 	scripts/vapt-get-worker scripts/vrpm-worker \
+-	scripts/vyum-worker scripts/vrpm-preload \
++	scripts/vyum-worker scripts/vurpmi-worker scripts/vrpm-preload \
+ 	scripts/save_s_context scripts/vservers.grabinfo.sh \
+ 	scripts/vpstree scripts/vserver-wrapper scripts/vsysvwrapper \
+ 	scripts/vtop scripts/h2ext-worker scripts/legacy/distrib-info \
+@@ -2342,6 +2342,7 @@ scripts_pkglib_src_DTA = scripts/functio
+ 				scripts/vserver-build.fai \
+ 				scripts/vserver-build.rpm \
+ 				scripts/vserver-build.yum \
++				scripts/vserver-build.urpmi \
+ 				scripts/vserver-build.template \
+ 				scripts/vserver-build.rsync \
+ 				scripts/vserver-build.clone \
+@@ -2350,6 +2351,7 @@ scripts_pkglib_src_DTA = scripts/functio
+ 				scripts/vserver-build.functions.rpm \
+ 				scripts/vserver-build.functions.pkgmgmt \
+ 				scripts/vserver-build.functions.yum \
++				scripts/vserver-build.functions.urpmi \
+ 				scripts/vserver-setup.functions \
+ 				scripts/vserver.functions \
+ 				scripts/vserver.start \
+@@ -2371,6 +2373,7 @@ scripts_pkglib_src_SCRPTS = scripts/pkgm
+ 				scripts/vservers.grabinfo.sh \
+ 				scripts/vshelper \
+ 				scripts/vsysvwrapper \
++				scripts/vurpmi-worker \
+ 				scripts/vyum-worker \
+ 				scripts/h2ext-worker
+ 
+diff -p -up util-vserver-0.30.215/contrib/manifest.dat.pathsubst.mdv util-vserver-0.30.215/contrib/manifest.dat.pathsubst
+--- util-vserver-0.30.215/contrib/manifest.dat.pathsubst.mdv	2008-03-17 09:59:48.000000000 +0100
++++ util-vserver-0.30.215/contrib/manifest.dat.pathsubst	2008-08-06 10:39:44.000000000 +0200
+@@ -7,6 +7,7 @@ build  @PKGLIBDIR@/vserver-build.skeleto
+ build  @PKGLIBDIR@/vserver-build.debootstrap
+ build  @PKGLIBDIR@/vserver-build.fai
+ build  @PKGLIBDIR@/vserver-build.yum
++build  @PKGLIBDIR@/vserver-build.urpmi
+ build  @PKGLIBDIR@/vserver-build.rpm
+ build  @PKGLIBDIR@/vserver-build.template
+ build  @PKGLIBDIR@/vserver-build.rsync
+@@ -15,6 +16,7 @@ build  @PKGLIBDIR@/vserver-build.functio
+ build  @PKGLIBDIR@/vserver-build.functions.apt
+ build  @PKGLIBDIR@/vserver-build.functions.rpm
+ build  @PKGLIBDIR@/vserver-build.functions.yum
++build  @PKGLIBDIR@/vserver-build.functions.urpmi
+ build  @PKGLIBDIR@/vserver-build.functions.pkgmgmt
+ build  @PKGLIBDIR@/vserver-setup.functions
+ base   @PKGLIBDIR@/vserver.functions
+@@ -72,6 +74,7 @@ base   @PKGLIBDIR@/start-vservers
+ base   @PKGLIBDIR@/tunctl
+ build  @PKGLIBDIR@/vapt-get-worker
+ build  @PKGLIBDIR@/vyum-worker
++build  @PKGLIBDIR@/vurpmi-worker
+ build  @PKGLIBDIR@/vpkg
+ base   @PKGLIBDIR@/vprocunhide
+ build  @PKGLIBDIR@/vrpm-preload
+diff -p -up util-vserver-0.30.215/distrib/Makefile.in.mdv util-vserver-0.30.215/distrib/Makefile.in
+--- util-vserver-0.30.215/distrib/Makefile.in.mdv	2008-03-17 10:00:10.000000000 +0100
++++ util-vserver-0.30.215/distrib/Makefile.in	2008-08-06 10:39:44.000000000 +0200
+@@ -256,6 +256,9 @@ defaults_DATA = misc/debootstrap.mirror 
+ nobase_distrib_SCRIPTS = redhat/initpost \
+ 			   redhat/initpre \
+ 			   redhat/rc.sysinit \
++			   mandriva/initpost \
++			   mandriva/initpre \
++			   mandriva/rc.sysinit \
+ 			   gentoo/initpost \
+ 			   gentoo/initpre \
+ 			   debian/initpost \
+@@ -292,6 +295,13 @@ nobase_distrib_DATA = defaults/devs \
+ 			   centos4/yum/yum.conf $(wildcard centos4/yum.repos.d/*.repo) \
+ 			   centos5/pkgs/01 centos5/pkgs/02 centos5/pkgs/03 \
+ 			   centos5/yum/yum.conf $(wildcard centos5/yum.repos.d/*.repo) \
++			   mandriva/pkgs/rpmlist.list \
++			   mandriva/pubkeys/pubkey \
++			   mandriva/pubkeys/pubkey2 \
++			   mandriva/pubkeys/pubkey3 \
++			   mandriva/pubkeys/pubkey_contrib \
++			   mandriva/pubkeys/pubkey_jpackage \
++			   mandriva/pubkeys/pubkey_main \
+ 			   suse91/apt/rpmpriorities suse91/pkgs/01 suse91/pkgs/02 \
+ 			   suse91/rpm/macros \
+ 			   gentoo/init-vserver.sh gentoo/net.vserver \
+diff -p -up util-vserver-0.30.215/distrib/mandriva/initpost.mdv util-vserver-0.30.215/distrib/mandriva/initpost
+--- util-vserver-0.30.215/distrib/mandriva/initpost.mdv	2008-08-06 10:39:44.000000000 +0200
++++ util-vserver-0.30.215/distrib/mandriva/initpost	2008-08-06 10:39:44.000000000 +0200
+@@ -0,0 +1,106 @@
++#! /bin/bash
++
++# Copyright (C) 2003 Enrico Scholz <enrico.scholz@informatik.tu-chemnitz.de>
++#  
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; version 2 of the License.
++#  
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#  
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++
++## HACK: this script is full of races...
++
++vdir=$1/vdir
++. "$2"
++
++function relink
++{
++    test ! -e "$2" -o -L "$2" || mv -f "$2"{,.orig}
++    ln -sf "$1" "$2"
++}
++
++## Usage: subst <file> <regexp>
++function subst
++{
++    tmp=$(mktemp /tmp/initpost-subst.XXXXXX)
++
++    case "$1" in
++	(/*|./*)	cat "$1";;
++	(*)		$_CHROOT_SH cat "$1";;
++    esac              | sed -e "$2"          >$tmp
++    cmp -s $tmp "$1" || $_CHROOT_SH truncate "$1" <$tmp
++
++    rm -f $tmp
++}
++
++vserver=$1
++
++## Do some magic to set the vserver into a defined state
++$_VSERVER "$vserver" stop  &>/dev/null || :
++$_VSERVER "$vserver" start --rescue --rescue-init bash -c '
++    exec  >/dev/null
++    exec 2>/dev/null
++
++    set -x
++    f=/tmp/startwait
++    trap "rm -f $f" EXIT
++    mkfifo $f
++    ( sleep 15; kill -s 9 -- -1 ) &
++    cat "$f" >/dev/null
++    kill -s 9 -- -1
++    wait
++'
++
++pushd "$vdir"/etc/init.d &>/dev/null ||
++    pushd "$vdir"/etc/rc.d/init.d &>/dev/null || exit 1
++
++    for i in *; do
++	test -e "$i" || continue
++	case "$i" in
++	    functions|halt|killall|single) ;;
++	    syslog) ;;
++	    *)
++		$_VSERVER "$1" chkconfig "$i" off
++		;;
++	esac
++    done
++
++popd >/dev/null
++
++pushd "$vdir"/sbin &>/dev/null
++    relink /bin/true new-kernel-pkg
++popd >/dev/null
++
++pushd "$vdir"/usr/bin &>/dev/null
++    relink /bin/true rhgb-client
++popd >/dev/null
++
++pushd "$vdir" &>/dev/null
++    echo 'NETWORKING=yes' | $_CHROOT_SH append /etc/sysconfig/network
++popd >/dev/null
++
++pushd "$vdir" &>/dev/null
++    cat <<EOF | $_CHROOT_SH truncate /etc/init.d/halt
++#! /bin/bash
++
++exec /sbin/killall5 -15
++EOF
++    $_CHROOT_SH chmod 0755 /etc/init.d/halt
++    
++    : | $_CHROOT_SH truncate /etc/sysctl.conf
++    echo "none    /       none    defaults" | $_CHROOT_SH truncate /etc/fstab
++    cat "$__DISTRIBDIR"/mandriva/rc.sysinit   | $_CHROOT_SH truncate /etc/rc.d/rc.sysinit.vserver
++    $_CHROOT_SH chmod 0755 /etc/rc.d/rc.sysinit.vserver
++    subst etc/inittab 's!^\([^#].*:respawn:.* tty\)!#\1!;
++		       s!si::sysinit:/etc/rc.d/rc.sysinit!si::sysinit:/etc/rc.d/rc.sysinit.vserver!'
++popd >/dev/null
++
++$_VSERVER "$vserver" exec bash -c ': >/tmp/startwait' &>/dev/null || :
++$_VSERVER "$vserver" stop &>/dev/null || :
+diff -p -up util-vserver-0.30.215/distrib/mandriva/initpre.mdv util-vserver-0.30.215/distrib/mandriva/initpre
+--- util-vserver-0.30.215/distrib/mandriva/initpre.mdv	2008-08-06 10:39:44.000000000 +0200
++++ util-vserver-0.30.215/distrib/mandriva/initpre	2008-08-06 10:39:44.000000000 +0200
+@@ -0,0 +1,22 @@
++#! /bin/bash
++
++# Copyright (C) 2003 Enrico Scholz <enrico.scholz@informatik.tu-chemnitz.de>
++#  
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; version 2 of the License.
++#  
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#  
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++
++vdir=$1/vdir
++. "$2"
++
++## Fix/workaround the misclassification of %_netsharedpath's parent directories
++mkdir -p "$vdir"/{etc/rc.d/init.d,/sbin,/usr/bin}
+diff -p -up util-vserver-0.30.215/distrib/mandriva/pkgs/rpmlist.list.mdv util-vserver-0.30.215/distrib/mandriva/pkgs/rpmlist.list
+--- util-vserver-0.30.215/distrib/mandriva/pkgs/rpmlist.list.mdv	2008-08-06 10:39:44.000000000 +0200
++++ util-vserver-0.30.215/distrib/mandriva/pkgs/rpmlist.list	2008-08-06 10:39:44.000000000 +0200
+@@ -0,0 +1 @@
++basesystem-minimal
+diff -p -up util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey.mdv util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey
+--- util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey.mdv	2008-08-06 10:39:44.000000000 +0200
++++ util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey	2008-08-06 10:39:44.000000000 +0200
+@@ -0,0 +1,27 @@
++-----BEGIN PGP PUBLIC KEY BLOCK-----
++Version: GnuPG v1.2.3 (GNU/Linux)
++
++mQGiBD/XT6oRBADPpYAPClDtKLGSZKmDU3pI9XCrsa+sR3CAJgrscSsffDQFEV7V
++jgO520G3+qBMG/ArgFHrJyFEWk4dNQsR7zRb8B+/ZFo3IhZKbk3gbjYsTrd05t4z
++DDYIS/GhWKHyhopK6B9uhcKNbuAqA0fM9jDG2j46wmwtLpIrfLa/1SgQQwCgxF4B
++dw4YoNhwUM98JTn3/Ojw8TcEAKLxQsGCjLQNl4DTEev7w4BKzx95eCVnQ7r7XXld
++gVOgAxlywGYDJVQn3Zn9Ad4/+8g2wHXcJxLNHUEIrsdZVqllzdYiQa27TtI3RLF0
++9leKZQD1awX6sAZxYgCUlQhCukPc61FP3upyna0gWFO6Jf/iS/PhZ96T00h2Gliw
++ePGTA/97g61DjVFKTlWUH1Bzz61rwtE3apsCX50W8J76Urisipl4niZC9Ns30uly
++LUgLhTiCvdejqy9O1ONdH9W0ALwv1ThbRlo5I92rWLCwgUpko38qo1bSNQ7DrCfK
++egKqiCpUltZ00gyUmAkKQTS9/nI/+lEKYkQJvY6ha5d3PC5SkLQqTWFuZHJha2VD
++b29rZXIgPGNvb2tlckBsaW51eC1tYW5kcmFrZS5jb20+iF4EExECAB4FAj/XT6oC
++GwMGCwkIBwMCAxUCAwMWAgECHgECF4AACgkQ3WhNeiZ1JiRczQCdGbsWsP/kMRVH
++dl1RKh8SRwpLeVcAoKc6QNmnR5a7FvrBvF1+qeeOe/cXiEYEExECAAYFAj/XVeQA
++CgkQ54mK4HB3H/OgQQCdECI6SKQHUuNr5P2teLVkZzRRHtgAn04q+NhEnzdll0Ga
++3SjZyV3kkCxtiEYEExECAAYFAj/XV68ACgkQRFk1+HjQGfXYaQCeK932DKZ/k7YN
++aFpE/RTDTVAE3uwAoKFJgC8DPPZUvF/9//kCG6ZImPKhuQENBD/XT6sQBAD5JPDp
++Z1toBcgDPsutvUfFBPJ0Iwi25p6rExQFssH7Pc9LVP1w/pXXuenuW9d1WqivU6Ah
++BC7hqgjhyf12WJ/rouM52w+RqqNtcIRK4gqHqYkuP54TD6bAXERC1eTJu4/XzZPR
++h5OR9FQSEmLGp7f662EqANPP3zZlE9El4zu1ywADBQQAvjEq5o0FD0zEoVhfjhsP
++U/uHBG9JIwOPiWBWJlYnLefWgEU/qqGrq23bfBnHvrfS1nmBLId0j6BBhUhDWk2b
++aP5GPcPb9AKXsqUtTiJGFJaIJtVJ5FQT0jvHgcgaCRAfGBCe9zBCPzxV+jaEXI26
++9n4VvGRpcK8uFTAwiFnvzmWISQQYEQIACQUCP9dPqwIbDAAKCRDdaE16JnUmJIZU
++AKC45vNS3JYh5MPbW0UhOgw69M1sZgCfZI0GCIVleeEzgIx+eDBjS4zDtDU=
++=NfCd
++-----END PGP PUBLIC KEY BLOCK-----
+diff -p -up util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey2.mdv util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey2
+--- util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey2.mdv	2008-08-06 10:39:44.000000000 +0200
++++ util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey2	2008-08-06 10:39:44.000000000 +0200
+@@ -0,0 +1,27 @@
++-----BEGIN PGP PUBLIC KEY BLOCK-----
++Version: GnuPG v1.2.3 (GNU/Linux)
++
++mQGiBD/XT6oRBADPpYAPClDtKLGSZKmDU3pI9XCrsa+sR3CAJgrscSsffDQFEV7V
++jgO520G3+qBMG/ArgFHrJyFEWk4dNQsR7zRb8B+/ZFo3IhZKbk3gbjYsTrd05t4z
++DDYIS/GhWKHyhopK6B9uhcKNbuAqA0fM9jDG2j46wmwtLpIrfLa/1SgQQwCgxF4B
++dw4YoNhwUM98JTn3/Ojw8TcEAKLxQsGCjLQNl4DTEev7w4BKzx95eCVnQ7r7XXld
++gVOgAxlywGYDJVQn3Zn9Ad4/+8g2wHXcJxLNHUEIrsdZVqllzdYiQa27TtI3RLF0
++9leKZQD1awX6sAZxYgCUlQhCukPc61FP3upyna0gWFO6Jf/iS/PhZ96T00h2Gliw
++ePGTA/97g61DjVFKTlWUH1Bzz61rwtE3apsCX50W8J76Urisipl4niZC9Ns30uly
++LUgLhTiCvdejqy9O1ONdH9W0ALwv1ThbRlo5I92rWLCwgUpko38qo1bSNQ7DrCfK
++egKqiCpUltZ00gyUmAkKQTS9/nI/+lEKYkQJvY6ha5d3PC5SkLQqTWFuZHJha2VD
++b29rZXIgPGNvb2tlckBsaW51eC1tYW5kcmFrZS5jb20+iF4EExECAB4FAj/XT6oC
++GwMGCwkIBwMCAxUCAwMWAgECHgECF4AACgkQ3WhNeiZ1JiRczQCdGbsWsP/kMRVH
++dl1RKh8SRwpLeVcAoKc6QNmnR5a7FvrBvF1+qeeOe/cXiEYEExECAAYFAj/XVeQA
++CgkQ54mK4HB3H/OgQQCdECI6SKQHUuNr5P2teLVkZzRRHtgAn04q+NhEnzdll0Ga
++3SjZyV3kkCxtiEYEExECAAYFAj/XV68ACgkQRFk1+HjQGfXYaQCeK932DKZ/k7YN
++aFpE/RTDTVAE3uwAoKFJgC8DPPZUvF/9//kCG6ZImPKhuQENBD/XT6sQBAD5JPDp
++Z1toBcgDPsutvUfFBPJ0Iwi25p6rExQFssH7Pc9LVP1w/pXXuenuW9d1WqivU6Ah
++BC7hqgjhyf12WJ/rouM52w+RqqNtcIRK4gqHqYkuP54TD6bAXERC1eTJu4/XzZPR
++h5OR9FQSEmLGp7f662EqANPP3zZlE9El4zu1ywADBQQAvjEq5o0FD0zEoVhfjhsP
++U/uHBG9JIwOPiWBWJlYnLefWgEU/qqGrq23bfBnHvrfS1nmBLId0j6BBhUhDWk2b
++aP5GPcPb9AKXsqUtTiJGFJaIJtVJ5FQT0jvHgcgaCRAfGBCe9zBCPzxV+jaEXI26
++9n4VvGRpcK8uFTAwiFnvzmWISQQYEQIACQUCP9dPqwIbDAAKCRDdaE16JnUmJIZU
++AKC45vNS3JYh5MPbW0UhOgw69M1sZgCfZI0GCIVleeEzgIx+eDBjS4zDtDU=
++=NfCd
++-----END PGP PUBLIC KEY BLOCK-----
+diff -p -up util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey3.mdv util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey3
+--- util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey3.mdv	2008-08-06 10:39:44.000000000 +0200
++++ util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey3	2008-08-06 10:39:44.000000000 +0200
+@@ -0,0 +1,25 @@
++-----BEGIN PGP PUBLIC KEY BLOCK-----
++Version: GnuPG v1.0.6 (GNU/Linux)
++Comment: For info see http://www.gnupg.org
++
++mQGiBD20yCERBADLY2x5Q7+ATSH9+jtd17hrRsWfaCOm888ITZTAmggeJ3ycxXmV
++or3EfbLXVFfTuFO6pU9ExFtRA9P6DsrCrsOlidZVl7TXZBiHOUpol3OyCo8wEfZ0
++e/ZCBYNkRf6NyQwJe3KEvHDqLLjDILQ7R0VU3l5DgqZeLRvK3zCLHr+TCwCg+MOC
++iJTLk+K0wh8EZbU5bMuws3cD/Ay+0y5hzxCS724RmuArM/wEBmPIJIujpcGUPaRN
++oKh/U6i8j+Iybmk6AuxqXni3TFFhYFrJi2M604coAbB8fD+6QJG9eDkzgunqDQPn
++avsLQmTwJsp055EjBupPa9w9B2WL77sucSYNvPvA5sbLIYo21KUWKCVLlh1ueSSN
++yJoXA/4qp3O7vCjAvvY42OXn2Ntf+jOLMb6LpnoSyLWXBcNlTxEOPqZGbDZitvrw
++nvzHCo23MEfXxRLO2Fbxejev+6b9NY7sVs8fE3v6MIygLBB/U5O0oekMEGHg/9e4
++qI1Yx/yXOiIQtiUzmeMV+hUNPtf2chrZO+AXo6FypcYhvpQwi7Q4SlBhY2thZ2Ug
++UHJvamVjdCAoSlBQIE9mZmljaWFsIEtleXMpIDxqcGFja2FnZUB6YXJiLm9yZz6I
++VwQTEQIAFwUCPbTIIQULBwoDBAMVAwIDFgIBAheAAAoJEFxs//fEMUFtUBMAn3xr
++SjRzew2eWM/cnLLxNWcqOM67AJ4q2PHYXU8rk7HSk7UZaVH8fvycArkBDQQ9tMgk
++EAQA2YuTdgZSHmMz8U1e4Hzk9XhnH/s+3EFnnxNm4hk4W4CSdzsrUT/zZU7M6s/g
++Tyn6f1JobB+l7HeBZRTrEutvXPqLh0ZOd+fKR0XSWpDs9N7+JCxUX5E+HBkrf1uo
++7bADXYtzCSyw8oyCzfPJNBz7BI4seys/zm2bkLj6XamcgJcAAwUEANGm2vSX4z6+
++RY1vkzeLeem4hCvVz5VtyvpWqJrpDpBv+pO7iTdXLe1CXx4GxAkFxcIFBK0Bo7kn
++bM8Z+hu4OxPzeKmV3yrPS5rzYfakLQmkF9gwhGgDtW0/6HZJEQLJ1gtpKVO4vR0n
++X/arPVu5aU47g18oarveQKAaRnVDj5TmiEYEGBECAAYFAj20yCQACgkQXGz/98Qx
++QW1whwCdGC6xsW7s24rJZS2APWWjmF1+ozQAoIO9xTE3M7UugyEqHgenbPNLtd3E
++=Wifs
++-----END PGP PUBLIC KEY BLOCK-----
+diff -p -up util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey_contrib.mdv util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey_contrib
+--- util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey_contrib.mdv	2008-08-06 10:39:44.000000000 +0200
++++ util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey_contrib	2008-08-06 10:39:44.000000000 +0200
+@@ -0,0 +1,27 @@
++-----BEGIN PGP PUBLIC KEY BLOCK-----
++Version: GnuPG v1.2.3 (GNU/Linux)
++
++mQGiBD/XT6oRBADPpYAPClDtKLGSZKmDU3pI9XCrsa+sR3CAJgrscSsffDQFEV7V
++jgO520G3+qBMG/ArgFHrJyFEWk4dNQsR7zRb8B+/ZFo3IhZKbk3gbjYsTrd05t4z
++DDYIS/GhWKHyhopK6B9uhcKNbuAqA0fM9jDG2j46wmwtLpIrfLa/1SgQQwCgxF4B
++dw4YoNhwUM98JTn3/Ojw8TcEAKLxQsGCjLQNl4DTEev7w4BKzx95eCVnQ7r7XXld
++gVOgAxlywGYDJVQn3Zn9Ad4/+8g2wHXcJxLNHUEIrsdZVqllzdYiQa27TtI3RLF0
++9leKZQD1awX6sAZxYgCUlQhCukPc61FP3upyna0gWFO6Jf/iS/PhZ96T00h2Gliw
++ePGTA/97g61DjVFKTlWUH1Bzz61rwtE3apsCX50W8J76Urisipl4niZC9Ns30uly
++LUgLhTiCvdejqy9O1ONdH9W0ALwv1ThbRlo5I92rWLCwgUpko38qo1bSNQ7DrCfK
++egKqiCpUltZ00gyUmAkKQTS9/nI/+lEKYkQJvY6ha5d3PC5SkLQqTWFuZHJha2VD
++b29rZXIgPGNvb2tlckBsaW51eC1tYW5kcmFrZS5jb20+iF4EExECAB4FAj/XT6oC
++GwMGCwkIBwMCAxUCAwMWAgECHgECF4AACgkQ3WhNeiZ1JiRczQCdGbsWsP/kMRVH
++dl1RKh8SRwpLeVcAoKc6QNmnR5a7FvrBvF1+qeeOe/cXiEYEExECAAYFAj/XVeQA
++CgkQ54mK4HB3H/OgQQCdECI6SKQHUuNr5P2teLVkZzRRHtgAn04q+NhEnzdll0Ga
++3SjZyV3kkCxtiEYEExECAAYFAj/XV68ACgkQRFk1+HjQGfXYaQCeK932DKZ/k7YN
++aFpE/RTDTVAE3uwAoKFJgC8DPPZUvF/9//kCG6ZImPKhuQENBD/XT6sQBAD5JPDp
++Z1toBcgDPsutvUfFBPJ0Iwi25p6rExQFssH7Pc9LVP1w/pXXuenuW9d1WqivU6Ah
++BC7hqgjhyf12WJ/rouM52w+RqqNtcIRK4gqHqYkuP54TD6bAXERC1eTJu4/XzZPR
++h5OR9FQSEmLGp7f662EqANPP3zZlE9El4zu1ywADBQQAvjEq5o0FD0zEoVhfjhsP
++U/uHBG9JIwOPiWBWJlYnLefWgEU/qqGrq23bfBnHvrfS1nmBLId0j6BBhUhDWk2b
++aP5GPcPb9AKXsqUtTiJGFJaIJtVJ5FQT0jvHgcgaCRAfGBCe9zBCPzxV+jaEXI26
++9n4VvGRpcK8uFTAwiFnvzmWISQQYEQIACQUCP9dPqwIbDAAKCRDdaE16JnUmJIZU
++AKC45vNS3JYh5MPbW0UhOgw69M1sZgCfZI0GCIVleeEzgIx+eDBjS4zDtDU=
++=NfCd
++-----END PGP PUBLIC KEY BLOCK-----
+diff -p -up util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey_jpackage.mdv util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey_jpackage
+--- util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey_jpackage.mdv	2008-08-06 10:39:44.000000000 +0200
++++ util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey_jpackage	2008-08-06 10:39:44.000000000 +0200
+@@ -0,0 +1,25 @@
++-----BEGIN PGP PUBLIC KEY BLOCK-----
++Version: GnuPG v1.0.6 (GNU/Linux)
++Comment: For info see http://www.gnupg.org
++
++mQGiBD20yCERBADLY2x5Q7+ATSH9+jtd17hrRsWfaCOm888ITZTAmggeJ3ycxXmV
++or3EfbLXVFfTuFO6pU9ExFtRA9P6DsrCrsOlidZVl7TXZBiHOUpol3OyCo8wEfZ0
++e/ZCBYNkRf6NyQwJe3KEvHDqLLjDILQ7R0VU3l5DgqZeLRvK3zCLHr+TCwCg+MOC
++iJTLk+K0wh8EZbU5bMuws3cD/Ay+0y5hzxCS724RmuArM/wEBmPIJIujpcGUPaRN
++oKh/U6i8j+Iybmk6AuxqXni3TFFhYFrJi2M604coAbB8fD+6QJG9eDkzgunqDQPn
++avsLQmTwJsp055EjBupPa9w9B2WL77sucSYNvPvA5sbLIYo21KUWKCVLlh1ueSSN
++yJoXA/4qp3O7vCjAvvY42OXn2Ntf+jOLMb6LpnoSyLWXBcNlTxEOPqZGbDZitvrw
++nvzHCo23MEfXxRLO2Fbxejev+6b9NY7sVs8fE3v6MIygLBB/U5O0oekMEGHg/9e4
++qI1Yx/yXOiIQtiUzmeMV+hUNPtf2chrZO+AXo6FypcYhvpQwi7Q4SlBhY2thZ2Ug
++UHJvamVjdCAoSlBQIE9mZmljaWFsIEtleXMpIDxqcGFja2FnZUB6YXJiLm9yZz6I
++VwQTEQIAFwUCPbTIIQULBwoDBAMVAwIDFgIBAheAAAoJEFxs//fEMUFtUBMAn3xr
++SjRzew2eWM/cnLLxNWcqOM67AJ4q2PHYXU8rk7HSk7UZaVH8fvycArkBDQQ9tMgk
++EAQA2YuTdgZSHmMz8U1e4Hzk9XhnH/s+3EFnnxNm4hk4W4CSdzsrUT/zZU7M6s/g
++Tyn6f1JobB+l7HeBZRTrEutvXPqLh0ZOd+fKR0XSWpDs9N7+JCxUX5E+HBkrf1uo
++7bADXYtzCSyw8oyCzfPJNBz7BI4seys/zm2bkLj6XamcgJcAAwUEANGm2vSX4z6+
++RY1vkzeLeem4hCvVz5VtyvpWqJrpDpBv+pO7iTdXLe1CXx4GxAkFxcIFBK0Bo7kn
++bM8Z+hu4OxPzeKmV3yrPS5rzYfakLQmkF9gwhGgDtW0/6HZJEQLJ1gtpKVO4vR0n
++X/arPVu5aU47g18oarveQKAaRnVDj5TmiEYEGBECAAYFAj20yCQACgkQXGz/98Qx
++QW1whwCdGC6xsW7s24rJZS2APWWjmF1+ozQAoIO9xTE3M7UugyEqHgenbPNLtd3E
++=Wifs
++-----END PGP PUBLIC KEY BLOCK-----
+diff -p -up util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey_main.mdv util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey_main
+--- util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey_main.mdv	2008-08-06 10:39:44.000000000 +0200
++++ util-vserver-0.30.215/distrib/mandriva/pubkeys/pubkey_main	2008-08-06 10:39:44.000000000 +0200
+@@ -0,0 +1,27 @@
++-----BEGIN PGP PUBLIC KEY BLOCK-----
++Version: GnuPG v1.2.3 (GNU/Linux)
++
++mQGiBD/XT6oRBADPpYAPClDtKLGSZKmDU3pI9XCrsa+sR3CAJgrscSsffDQFEV7V
++jgO520G3+qBMG/ArgFHrJyFEWk4dNQsR7zRb8B+/ZFo3IhZKbk3gbjYsTrd05t4z
++DDYIS/GhWKHyhopK6B9uhcKNbuAqA0fM9jDG2j46wmwtLpIrfLa/1SgQQwCgxF4B
++dw4YoNhwUM98JTn3/Ojw8TcEAKLxQsGCjLQNl4DTEev7w4BKzx95eCVnQ7r7XXld
++gVOgAxlywGYDJVQn3Zn9Ad4/+8g2wHXcJxLNHUEIrsdZVqllzdYiQa27TtI3RLF0
++9leKZQD1awX6sAZxYgCUlQhCukPc61FP3upyna0gWFO6Jf/iS/PhZ96T00h2Gliw
++ePGTA/97g61DjVFKTlWUH1Bzz61rwtE3apsCX50W8J76Urisipl4niZC9Ns30uly
++LUgLhTiCvdejqy9O1ONdH9W0ALwv1ThbRlo5I92rWLCwgUpko38qo1bSNQ7DrCfK
++egKqiCpUltZ00gyUmAkKQTS9/nI/+lEKYkQJvY6ha5d3PC5SkLQqTWFuZHJha2VD
++b29rZXIgPGNvb2tlckBsaW51eC1tYW5kcmFrZS5jb20+iF4EExECAB4FAj/XT6oC
++GwMGCwkIBwMCAxUCAwMWAgECHgECF4AACgkQ3WhNeiZ1JiRczQCdGbsWsP/kMRVH
++dl1RKh8SRwpLeVcAoKc6QNmnR5a7FvrBvF1+qeeOe/cXiEYEExECAAYFAj/XVeQA
++CgkQ54mK4HB3H/OgQQCdECI6SKQHUuNr5P2teLVkZzRRHtgAn04q+NhEnzdll0Ga
++3SjZyV3kkCxtiEYEExECAAYFAj/XV68ACgkQRFk1+HjQGfXYaQCeK932DKZ/k7YN
++aFpE/RTDTVAE3uwAoKFJgC8DPPZUvF/9//kCG6ZImPKhuQENBD/XT6sQBAD5JPDp
++Z1toBcgDPsutvUfFBPJ0Iwi25p6rExQFssH7Pc9LVP1w/pXXuenuW9d1WqivU6Ah
++BC7hqgjhyf12WJ/rouM52w+RqqNtcIRK4gqHqYkuP54TD6bAXERC1eTJu4/XzZPR
++h5OR9FQSEmLGp7f662EqANPP3zZlE9El4zu1ywADBQQAvjEq5o0FD0zEoVhfjhsP
++U/uHBG9JIwOPiWBWJlYnLefWgEU/qqGrq23bfBnHvrfS1nmBLId0j6BBhUhDWk2b
++aP5GPcPb9AKXsqUtTiJGFJaIJtVJ5FQT0jvHgcgaCRAfGBCe9zBCPzxV+jaEXI26
++9n4VvGRpcK8uFTAwiFnvzmWISQQYEQIACQUCP9dPqwIbDAAKCRDdaE16JnUmJIZU
++AKC45vNS3JYh5MPbW0UhOgw69M1sZgCfZI0GCIVleeEzgIx+eDBjS4zDtDU=
++=NfCd
++-----END PGP PUBLIC KEY BLOCK-----
+diff -p -up util-vserver-0.30.215/distrib/mandriva/rc.sysinit.mdv util-vserver-0.30.215/distrib/mandriva/rc.sysinit
+--- util-vserver-0.30.215/distrib/mandriva/rc.sysinit.mdv	2008-08-06 10:39:44.000000000 +0200
++++ util-vserver-0.30.215/distrib/mandriva/rc.sysinit	2008-08-06 10:39:44.000000000 +0200
+@@ -0,0 +1,4 @@
++#! /bin/sh
++
++rm -f /var/lock/subsys/* /var/run/* /var/run/*/* 2>/dev/null
++true
+diff -p -up util-vserver-0.30.215/scripts/Makefile-files.mdv util-vserver-0.30.215/scripts/Makefile-files
+--- util-vserver-0.30.215/scripts/Makefile-files.mdv	2008-03-17 09:59:46.000000000 +0100
++++ util-vserver-0.30.215/scripts/Makefile-files	2008-08-06 10:39:44.000000000 +0200
+@@ -21,6 +21,7 @@ AM_INSTALLCHECK_STD_OPTIONS_EXEMPT += \
+ 				scripts/vapt-get-worker \
+ 				scripts/vrpm-worker \
+ 				scripts/vyum-worker \
++				scripts/urpmi-worker \
+ 				scripts/vrpm-preload \
+ 				scripts/save_s_context \
+ 				scripts/vservers.grabinfo.sh \
+@@ -45,6 +46,7 @@ scripts_pkglib_src_DTA =	scripts/functio
+ 				scripts/vserver-build.fai \
+ 				scripts/vserver-build.rpm \
+ 				scripts/vserver-build.yum \
++				scripts/vserver-build.urpmi \
+ 				scripts/vserver-build.template \
+ 				scripts/vserver-build.rsync \
+ 				scripts/vserver-build.clone \
+@@ -53,6 +55,7 @@ scripts_pkglib_src_DTA =	scripts/functio
+ 				scripts/vserver-build.functions.rpm \
+ 				scripts/vserver-build.functions.pkgmgmt \
+ 				scripts/vserver-build.functions.yum \
++				scripts/vserver-build.functions.urpmi \
+ 				scripts/vserver-setup.functions \
+ 				scripts/vserver.functions \
+ 				scripts/vserver.start \
+diff -p -up util-vserver-0.30.215/scripts/functions.mdv util-vserver-0.30.215/scripts/functions
+--- util-vserver-0.30.215/scripts/functions.mdv	2008-08-06 10:39:44.000000000 +0200
++++ util-vserver-0.30.215/scripts/functions	2008-08-06 10:39:44.000000000 +0200
+@@ -352,7 +352,7 @@ function _pkgSetVarsBase
+     if test -z "$WORKAROUND_106057"; then
+ 	_rpmdb_mntpoint=/dev
+     else
+-	_rpmdb_mntpoint=/.rpmdb
++	_rpmdb_mntpoint=$BASEDIR/.rpmdb
+     fi
+ }
+ 
+@@ -403,6 +403,16 @@ function _pkgSetVarsYum
+     fi
+ }
+ 
++function _pkgSetVarsUrpmi
++{
++     if test -n "$PKGDIR"; then
++	findDir URPMIETCDIR    $PKGDIR/urpmietc      $PKGDIR/base/urpmi/etc       /etc/urpmi
++	findDir URPMICAHEDIR  $PKGDIR/urpmicache    $PKGDIR/base/urpmi/cache
++    else
++	findDir URPMIETCDIR    "$VDIR"/etc/urpmi       	 /etc/urpmi
++	findDir URPMICACHEDIR  "$VDIR"/var/cache/urpmi
++    fi
++}
+ 
+ function _pkgMountBase
+ {
+@@ -419,8 +429,14 @@ function _pkgMountYum
+     :
+ }
+ 
++function _pkgMountUrpmi
++{
++    :
++}
++
+ function _pkgMountRPM
+ {
++
+     _pkgMountBindDir "$RPMETCDIR" /etc/rpm
+     test "$RPMLIBDIR" = "/" || _pkgMountBindDir "$RPMLIBDIR" /usr/lib/rpm
+ 
+@@ -433,6 +449,7 @@ function _pkgMountRPM
+ 	$_SECURE_MOUNT --chroot -n -t proc none /proc
+ 
+     popd >/dev/null
++
+ }
+ 
+ function _pkgSetEnvBase
+@@ -455,6 +472,11 @@ function _pkgSetEnvYum
+     :
+ }
+ 
++function _pkgSetEnvUrpmi
++{
++    :
++}
++
+ function _pkgSetEnvRPM
+ {
+     CUR_VSERVER=$vserver
+@@ -462,6 +484,7 @@ function _pkgSetEnvRPM
+     RPM_BINARY=$_VRPM_PRELOAD
+ 
+     export CUR_VSERVER RPM_FAKE_NAMESPACE_MOUNTS RPM_BINARY
++		
+ }
+ 
+ function pkgInit
+@@ -476,6 +499,7 @@ function pkgInit
+ 	    rpm)	_pkgSetVarsRPM;;
+ 	    apt)	_pkgSetVarsApt;;
+ 	    yum)	_pkgSetVarsYum;;
++	    urpmi)	_pkgSetVarsUrpmi;;
+ 	    *)		echo "Unknown packaging flavor" >&2; exit 1;;
+ 	esac
+     done
+@@ -486,6 +510,7 @@ function pkgInit
+ 	    rpm)	_pkgMountRPM;;
+ 	    apt)	_pkgMountApt;;
+ 	    yum)	_pkgMountYum;;
++	    urpmi)	_pkgMountUrpmi;;
+ 	esac
+     done
+ 
+@@ -495,6 +520,7 @@ function pkgInit
+ 	    rpm)	_pkgSetEnvRPM;;
+ 	    apt)	_pkgSetEnvApt;;
+ 	    yum)	_pkgSetEnvYum;;
++	    urpmi)	_pkgSetEnvUrpmi;;
+ 	esac
+     done
+ 
+diff -p -up util-vserver-0.30.215/scripts/pkgmgmt.mdv util-vserver-0.30.215/scripts/pkgmgmt
+--- util-vserver-0.30.215/scripts/pkgmgmt.mdv	2008-08-06 10:39:44.000000000 +0200
++++ util-vserver-0.30.215/scripts/pkgmgmt	2008-08-06 10:39:44.000000000 +0200
+@@ -53,7 +53,7 @@ function init()
+     if test -z "$WORKAROUND_106057"; then
+ 	rpmdb_mntpoint=/dev
+     else
+-	rpmdb_mntpoint=/.rpmdb
++	rpmdb_mntpoint=$RPMDB_PATH
+     fi
+ }
+ 
+diff -p -up util-vserver-0.30.215/scripts/util-vserver-vars.pathsubst.mdv util-vserver-0.30.215/scripts/util-vserver-vars.pathsubst
+--- util-vserver-0.30.215/scripts/util-vserver-vars.pathsubst.mdv	2008-03-17 09:59:46.000000000 +0100
++++ util-vserver-0.30.215/scripts/util-vserver-vars.pathsubst	2008-08-06 10:39:44.000000000 +0200
+@@ -52,6 +52,7 @@ _LIB_VSERVER_BUILD_FUNCTIONS="$__PKGLIBD
+ _LIB_VSERVER_BUILD_FUNCTIONS_APT="$__PKGLIBDIR/vserver-build.functions.apt"
+ _LIB_VSERVER_BUILD_FUNCTIONS_RPM="$__PKGLIBDIR/vserver-build.functions.rpm"
+ _LIB_VSERVER_BUILD_FUNCTIONS_YUM="$__PKGLIBDIR/vserver-build.functions.yum"
++_LIB_VSERVER_BUILD_FUNCTIONS_URPMI="$__PKGLIBDIR/vserver-build.functions.urpmi"
+ _LIB_VSERVER_BUILD_FUNCTIONS_PKGMGMT="$__PKGLIBDIR/vserver-build.functions.pkgmgmt"
+ _LISTDEVIP="$__LEGACYDIR/listdevip"
+ _LOCKFILE="$__PKGLIBDIR/lockfile"
+@@ -108,6 +109,8 @@ _VUNAME="$__SBINDIR/vuname"
+ _VUNIFY="$__PKGLIBDIR/vunify"
+ _VYUM="$__SBINDIR/vyum"
+ _VYUM_WORKER="$__PKGLIBDIR/vyum-worker"
++_VURPMI="$__SBINDIR/urpmi"
++_VURPMI_WORKER="$__PKGLIBDIR/vurpmi-worker"
+ 
+ _AWK="@AWK@"
+ _BZIP2="@BZIP2@"
+diff -p -up util-vserver-0.30.215/scripts/vserver-build.functions.urpmi.mdv util-vserver-0.30.215/scripts/vserver-build.functions.urpmi
+--- util-vserver-0.30.215/scripts/vserver-build.functions.urpmi.mdv	2008-08-06 10:39:44.000000000 +0200
++++ util-vserver-0.30.215/scripts/vserver-build.functions.urpmi	2008-08-06 10:39:44.000000000 +0200
+@@ -0,0 +1,85 @@
++# Copyright (C) 2005 Erwan Velu <erwan.velu@free.fr>
++#  
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; version 2 of the License.
++#  
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#  
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++
++#Based on the yum version
++#TODO: Checking it works in all cases
++#      Checking The use of all variables
++
++function urpmi.installBasePackages
++{
++    local name="$1"
++    local dir="$2"
++    test "$dir" != / || return 0
++    for filelist in "$dir"/*; do
++	test -f "$filelist" || continue
++	local idx=0
++	local can_fail=false
++	local flags=
++
++	set -- $(<$filelist)
++	while test "$#" -gt 0; do
++	    case "$1" in
++		--reinstall) flags='';;
++		--can-fail)  can_fail=true;;
++		*)  	     break;;
++	    esac
++	    shift
++	done
++	"$_VURPMI" $flags --root "$VDIR" --auto $* || $can_fail
++    done
++}
++
++function urpmi.initVariables
++{
++     RPMDB_PATH=$SETUP_CONFDIR/.rpmdb
++     findDir URPMIREPOSDEFAULT \
++	"$__CONFDIR/.distributions/$DISTRIBUTION/rpm.repos.d" \
++	"$__DISTRIBDIR/$DISTRIBUTION/rpm.repos.d" \
++	''
++}
++
++function urpmi.initDB
++{
++	rm -rf $1/var/lib/rpm
++	mkdir -p $1/var/lib/rpm
++	rpm --root "$1" --initdb
++        rpm --root "$1" --rebuilddb
++}
++
++
++function urpmi.initFilesystem
++{
++    mkdir -p "$PKGCFGDIR"/urpmi/{etc,cache}
++    
++    populateDirectory "$PKGCFGDIR/urpmi/etc" \
++	"$__DISTRIBDIR/defaults/urpmi" \
++	"$__DISTRIBDIR/$DISTRIBUTION/urpmi" \
++	"$__CONFDIR/.distributions/$DISTRIBUTION/urpmi"
++
++    ## workaround for yum's automatism to search the configuration in the chroot
++    local prefix='/../../../../../../../../../../../../'
++    local f="$PKGCFGDIR"/urpmi/etc/urpmi.cfg
++    if test -e "$f"; then
++	$_SED -e "s!@URPMIETCDIR@!$prefix$PKGCFGDIR/urpmi/etc!g;
++		  s!@URPMICACHEDIR@!$prefix$PKGCFGDIR/urpmi/cache!g;
++		  s!@URPMILOGDIR@!$prefix$PKGCFGDIR/urpmi!g;
++                 " "$f" >"$f.tmp"
++	$_CMP -s "$f" "$f.tmp" || $_CAT "$f.tmp" >"$f"
++	$_RM -f "$f.tmp"
++    fi
++
++    test -z "$URPMIREPOSDEFAULT" -o -e "$PKGCFGDIR/urpmi/etc/urpmi.repos.d" || \
++	$_LN_S "$UPMIREPOSDEFAULT"   "$PKGCFGDIR/urpmi/etc/urpmi.repos.d"
++}
+diff -p -up util-vserver-0.30.215/scripts/vserver-build.mdv util-vserver-0.30.215/scripts/vserver-build
+--- util-vserver-0.30.215/scripts/vserver-build.mdv	2008-03-17 09:59:46.000000000 +0100
++++ util-vserver-0.30.215/scripts/vserver-build	2008-08-06 10:39:44.000000000 +0200
+@@ -57,6 +57,9 @@ Possible methods are:
+     yum         ... -- -d <distribution>
+                 ...  installs the base-packages of the given distribution with
+ 		     help of 'vyum'
++    urpmi       ... -- -d <distribution>
++                ...  installs the base-packages of the given distribution with
++		     help of 'vurpmi'
+     rpm         ... -- [-d <distribution>] --empty|([--force] [--nodeps] <manifest>)+
+                 ...  installs lists of rpm-packages
+     skeleton    ... -- [<cmd> <args>*]
+@@ -136,7 +139,7 @@ setup_setDefaults "$VSERVER_NAME"
+ 
+ case x"$method" in
+     (xlegacy)	exec $_VSERVER_LEGACY "$VSERVER_NAME" build "$@" ;;
+-    (xapt-rpm|xcopy|xskeleton|xdebootstrap|xyum|xrpm|xtemplate|xfai|xrsync|xclone)
++    (xapt-rpm|xcopy|xskeleton|xdebootstrap|xyum|xurpmi|xrpm|xtemplate|xfai|xrsync|xclone)
+ 		. $__PKGLIBDIR/vserver-build.$method
+ 		;;
+     (x)		panic $"No build-method specified";;
+diff -p -up util-vserver-0.30.215/scripts/vserver-build.urpmi.mdv util-vserver-0.30.215/scripts/vserver-build.urpmi
+--- util-vserver-0.30.215/scripts/vserver-build.urpmi.mdv	2008-08-06 10:39:44.000000000 +0200
++++ util-vserver-0.30.215/scripts/vserver-build.urpmi	2008-08-06 10:39:44.000000000 +0200
+@@ -0,0 +1,66 @@
++# $Id: vserver-build.yum 2162 2005-07-25 15:40:22Z ensc $	--*- sh -*--
++# Copyright (C) 2005 Erwan Velu <erwan.velu@free.fr>
++#  
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; version 2 of the License.
++#  
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#  
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++# Based on the yum version
++
++tmp=$(getopt -o +d: --long debug -n "$0" -- "$@") || exit 1
++eval set -- "$tmp"
++
++. "$_LIB_VSERVER_BUILD_FUNCTIONS_RPM"
++. "$_LIB_VSERVER_BUILD_FUNCTIONS_URPMI"
++. "$_LIB_VSERVER_BUILD_FUNCTIONS_PKGMGMT"
++
++while true; do
++    case "$1" in
++	(-d)		DISTRIBUTION=$2; shift;;
++	(--debug)	set -x;;
++	(--)		shift; break ;;
++	(*)		echo "vserver-build.yum-rpm: internal error: unrecognized option '$1'" >&2
++			exit 1
++			;;
++    esac
++    shift
++done
++
++getDistribution
++
++base.init
++pkgmgmt.initVariables
++rpm.initVariables
++urpmi.initVariables
++
++rpm.sanityCheck
++
++
++base.initFilesystem    "$OPTION_FORCE"
++pkgmgmt.initFilesystem "$OPTION_FORCE"
++rpm.initFilesystem
++urpmi.initFilesystem
++
++setup_writeOption "$VSERVER_NAME"
++setup_writeInitialFstab
++setup_writeHostFile
++
++test -z "$BUILD_INITPRE"  || "$BUILD_INITPRE" "$SETUP_CONFDIR"  "$UTIL_VSERVER_VARS"
++urpmi.initDB "$SETUP_CONFDIR"
++rpm.importGPGPubKeys "$SETUP_CONFDIR" \
++    "$__CONFDIR/.distributions/$DISTRIBUTION/pubkeys" \
++    "$__CONFDIR/.distributions/.common/pubkeys" \
++    "$__DISTRIBDIR/$DISTRIBUTION/pubkeys"
++urpmi.installBasePackages "$SETUP_CONFDIR" "$PKGINSTALLDIR"
++
++test -z "$BUILD_INITPOST" || "$BUILD_INITPOST" "$SETUP_CONFDIR" "$UTIL_VSERVER_VARS"
++
++base.setSuccess
+diff -p -up util-vserver-0.30.215/scripts/vserver-setup.functions.mdv util-vserver-0.30.215/scripts/vserver-setup.functions
+--- util-vserver-0.30.215/scripts/vserver-setup.functions.mdv	2008-03-17 09:59:46.000000000 +0100
++++ util-vserver-0.30.215/scripts/vserver-setup.functions	2008-08-06 10:39:44.000000000 +0200
+@@ -230,6 +230,25 @@ function setup_writeInitialFstab
+     cat "${SETUP_FSTAB:?}" >"${SETUP_CONFDIR:?}"/fstab
+ }
+ 
++function setup_writeHostFile
++{
++	tmp=${SETUP_INTERFACES[0]};
++	local name=${tmp%%=*}
++	test "$name" != "$tmp" || name=
++	tmp=${tmp##${name}=}
++	local dev=${tmp%%:*}
++	test "$dev" != "$tmp" || dev=
++	tmp=${tmp##${dev}:}
++    	local mask=${tmp##*/}
++    	test "$mask" != "$tmp"  || mask=
++	local ip=${tmp%%/${mask}}
++
++	cat << EOF >"$VDIR"/etc/hosts
++127.0.0.1 localhost localhost.localdomain
++$ip $SETUP_HOSTNAME
++EOF
++}
++
+ function setup_test
+ {
+     SETUP_INTERFACES=()
+diff -p -up util-vserver-0.30.215/scripts/vurpmi-worker.mdv util-vserver-0.30.215/scripts/vurpmi-worker
+--- util-vserver-0.30.215/scripts/vurpmi-worker.mdv	2008-08-06 10:39:44.000000000 +0200
++++ util-vserver-0.30.215/scripts/vurpmi-worker	2008-08-06 10:39:44.000000000 +0200
+@@ -0,0 +1,36 @@
++#! /bin/bash
++# Copyright (C) 2005 Erwan Velu <erwan.velu@free.fr>
++#  
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; version 2 of the License.
++#  
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#  
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++# Based on yum version
++# TODO: checking if this script is really necessary
++set -e
++
++: ${UTIL_VSERVER_VARS:=/usr/lib/util-vserver/util-vserver-vars}
++test -e "$UTIL_VSERVER_VARS" || {
++    echo $"Can not find util-vserver installation (the file '$UTIL_VSERVER_VARS' would be expected); aborting..." >&2
++    exit 1
++}
++. "$UTIL_VSERVER_VARS"
++. "$_LIB_FUNCTIONS"
++
++vserver=$1
++shift
++
++pkgInit "$vserver" rpm urpmi
++rpmFake.init "$vserver"
++
++rpmFake.exec ${_URPMI:-urpmi} \
++    --root="$VDIR" \
++    "$@"
