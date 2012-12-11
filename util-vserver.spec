@@ -29,9 +29,10 @@ Provides:	vserver = %version
 Obsoletes:	vserver < %version
 BuildRequires:	mount vlan-utils gawk iproute2 iptables
 BuildRequires:	gcc-c++ wget
-BuildRequires:	e2fsprogs-devel libbeecrypt-devel
+BuildRequires:	pkgconfig(ext2fs) beecrypt-devel
 BuildRequires:	doxygen tetex-latex
 BuildRequires:	libxslt-proc
+BuildRequires:	texlive
 BuildRequires:	rsync
 BuildRequires:	dump
 Requires(post):		%__chattr
@@ -180,8 +181,8 @@ rm -f $RPM_BUILD_ROOT/%_libdir/*.la
 contrib/make-manifest %name $RPM_BUILD_ROOT contrib/manifest.dat
 
 
-%check
-%__make check
+#% check
+#% __make check
 
 
 %clean
@@ -333,10 +334,103 @@ test "$1" = 0  || service rebootmgr condrestart >/dev/null || :
 %files legacy -f %name-legacy.list
 %defattr(-,root,root,-)
 %dir %pkglibdir/legacy
-%config(noreplace) /etc/vservers.conf
+#% config(noreplace) /etc/vservers.conf
 
 
 %files devel -f %name-devel.list
 %defattr(-,root,root,-)
 %doc lib/apidoc/latex/refman.pdf
 %doc lib/apidoc/html
+
+
+%changelog
+* Sun Sep 20 2009 Thierry Vignaud <tvignaud@mandriva.com> 0.30.215-6mdv2010.0
++ Revision: 445639
+- rebuild
+
+* Wed Mar 25 2009 Guillaume Rousse <guillomovitch@mandriva.org> 0.30.215-5mdv2009.1
++ Revision: 361164
+- drop apt dependency, as it is not available
+
+* Tue Aug 19 2008 Olivier Blin <oblin@mandriva.com> 0.30.215-4mdv2009.0
++ Revision: 273654
+- install basesystem-minimal instead of basesystem (suggested by Fabrice Facorat, #40194)
+
+* Wed Aug 06 2008 Olivier Blin <oblin@mandriva.com> 0.30.215-3mdv2009.0
++ Revision: 264285
+- fix syntax
+- rediff urpmi patch
+- 0.30.215
+- fix urpmi support (patch from Fabrice Facorat, #40192)
+- restore BuildRoot
+
+  + Thierry Vignaud <tvignaud@mandriva.com>
+    - rebuild
+    - kill re-definition of %%buildroot on Pixel's request
+
+  + Pixel <pixel@mandriva.com>
+    - do not call ldconfig in %%post/%%postun, it is now handled by filetriggers
+
+  + Oden Eriksson <oeriksson@mandriva.com>
+    - revert the last change
+    - fix build deps
+    - enable all api:s
+
+* Thu Jul 19 2007 Olivier Blin <oblin@mandriva.com> 0.30.213-1mdv2008.0
++ Revision: 53447
+- 0.30.213
+- rediff urpmi patch
+
+* Tue May 01 2007 Crispin Boylan <crisb@mandriva.org> 0.30.212-3mdv2008.0
++ Revision: 19992
+- Rebuild for new libbeecrypt
+
+
+* Mon Jan 08 2007 Olivier Blin <oblin@mandriva.com> 0.30.212-2mdv2007.0
++ Revision: 105420
+- bump release (important updates in urpmi support)
+- handle mandrake -> mandriva name change
+- partially sync urpmi scripts with yum scripts
+- fix urpmi location
+- rename _VURPMI as _URPMI
+- use mandriva instead of mandrakelinux
+
+* Sat Jan 06 2007 Olivier Blin <oblin@mandriva.com> 0.30.212-1mdv2007.1
++ Revision: 104912
+- rediff Mandriva patch
+- inline /var/run macro
+- more /var fixes
+- use rpm-helper macros instead of chkconfig
+- remove unnecessary patch0
+- fix libbeecrypt-devel buildrequire
+- fix cache location
+- 0.30.212 (sync with upstream spec, based on work from nayco)
+- Import util-vserver
+
+* Sat Feb 19 2005 Erwan Velu <erwan@seanodes.com> - 0.30.204-1mdk
+- 0.30.204
+- Integrating mandrake's patch
+
+* Tue Feb 15 2005 Erwan Velu <erwan@seanodes.com> - 0.30.203-2mdk
+- First mdk release (why 1mdk before that's the question)
+- Removing epoch (not necessary for a new rpm)
+- Cleaning
+
+* Sat Feb 12 2005 Herbert Pötzl <herbert@13thfloor.at> - 0:0.30.203-1mdk
+- updated to latest alpha release
+
+* Wed Jan 26 2005 Enrico Scholz <enrico.scholz@informatik.tu-chemnitz.de> - 0:0.30.198-0.3
+- updated BuildRequires:
+- use 'setattr --barrier' instead of 'chattr +t' in the %%post scriptlet
+- moved the v_* initscripts to legacy
+- do not ship the /vservers directory itself; as it is immutable, the
+  extraction will fail else
+
+* Mon Mar 15 2004 Enrico Scholz <enrico.scholz@informatik.tu-chemnitz.de> - 0:0.29.202-0
+- use file-list for sysv scripts also
+
+* Sat Mar 06 2004 Enrico Scholz <enrico.scholz@informatik.tu-chemnitz.de> - 0:0.29.198-0
+- added vprocunhide-service support
+- added doxygen support
+- updated Requires:
+
