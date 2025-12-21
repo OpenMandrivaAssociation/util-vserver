@@ -27,6 +27,11 @@ Requires:	%name-sysv  = %version
 Requires:	diffutils mktemp sed
 Provides:	vserver = %version
 Obsoletes:	vserver < %version
+BuildRequires:	autoconf
+BuildRequires:	automake
+BuildRequires:	libtool-base
+BuildRequires:	slibtool
+BuildRequires:	make
 BuildRequires:	mount vlan-utils gawk iproute2 iptables
 BuildRequires:	gcc-c++ wget
 BuildRequires:	pkgconfig(ext2fs) beecrypt-devel
